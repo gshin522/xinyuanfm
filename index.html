@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>心愿 FM - 会员系统</title>
+    <style>
+        :root { --primary: #E08870; --bg-soft: #E7A595; --wa-green: #25d366; }
+        body { background-color: var(--bg-soft); font-family: "Microsoft YaHei", sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; flex-direction: column; }
+        
+        .search-container { background: white; padding: 30px 25px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 350px; }
+        .logo-img { width: 80px; margin-bottom: 10px; }
+        h2 { color: var(--primary); margin: 0; }
+        .slogan { color: #8e7470; font-size: 12px; margin: 5px 0 20px 0; }
+        input { width: 100%; padding: 14px; margin: 8px 0; border: 2px solid #f3e0dc; border-radius: 12px; box-sizing: border-box; font-size: 16px; outline: none; }
+        button { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 17px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+
+        /* 全屏会员证层 */
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 1000; justify-content: center; align-items: center; flex-direction: column; }
+        #memberCardImg { width: 100%; height: auto; max-height: 90vh; object-fit: contain; cursor: pointer; }
+        
+        /* 自定义温馨提示框 */
+        #customAlert { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; }
+        .alert-box { background: white; width: 80%; max-width: 280px; border-radius: 20px; text-align: center; overflow: hidden; animation: pop 0.3s; }
+        @keyframes pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .alert-header { background: #fdf2f0; padding: 15px; color: var(--primary); font-weight: bold; font-size: 16px; border-bottom: 1px solid #eee; }
+        .alert-body { padding: 20px; color: #555; font-size: 15px; }
+        .alert-footer { padding: 15px; border-top: 1px solid #eee; color: var(--primary); font-weight: bold; cursor: pointer; }
+
+        .error { color: #c0392b; margin-top: 20px; font-size: 14px; display: none; line-height: 1.6; }
+        .wa-link { color: var(--wa-green); text-decoration: none; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 5px; }
+        .wa-icon { width: 18px; vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+    <div class="search-container" id="searchBox">
+        <img src="https://i.ibb.co/ycBDJ23z/logo.png" class="logo-img">
+        <h2>心愿 FM</h2>
+        <div class="slogan">聆听陪伴，共享法悦</div>
+        <input type="text" id="nameInput" placeholder="输入姓名 (中文或英文)">
+        <input type="tel" id="phoneInput" placeholder="手机号末 4 位" maxlength="4">
+        <button id="searchBtn" onclick="doSearch()">查询会员证</button>
+        
+        <div id="errorMsg" class="error">
+            插无资料。请检查姓名及电话末4位。<br>
+            需要协助？
+            <a id="waLink" href="#" target="_blank" class="wa-link">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" class="wa-icon">点此联系热线
+            </a>
+        </div>
+    </div>
+
+    <div id="modal">
+        <p style="color: white; font-size: 12px; margin-bottom: 10px; opacity: 0.6;">点击图片进入全屏 | <span onclick="closeModal()" style="text-decoration: underline; cursor: pointer;">返回修改</span></p>
+        <img id="memberCardImg" src="" onclick="requestFull()">
+    </div>
+
+    <div id="customAlert">
+        <div class="alert-box">
+            <div class="alert-header">心愿 FM 提示</div>
+            <div id="alertMsg" class="alert-body">请填写完整信息</div>
+            <div class="alert-footer" onclick="closeAlert()">好 的</div>
+        </div>
+    </div>
+
+<script>
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRGpv5GQ4HLRd7LfPeaTrPA9LB3ct-IiHXdUEZ7Ck1av3Or4N_v1-aMa1iJFd6rfwbUlTUoZECqiaX2/pub?output=csv';
+    const hotLine = "60149696608";
+
+    function showAlert(msg) {
+        document.getElementById('alertMsg').innerText = msg;
+        document.getElementById('customAlert').style.display = 'flex';
+    }
+    function closeAlert() { document.getElementById('customAlert').style.display = 'none'; }
+
+    async function doSearch() {
+        const userInput = document.getElementById('nameInput').value.replace(/\s+/g, '').toUpperCase();
+        const phoneInput = document.getElementById('phoneInput').value.replace(/\s+/g, '');
+        const btn = document.getElementById('searchBtn');
+        const errDiv = document.getElementById('errorMsg');
+
+        if(!userInput || !phoneInput) { showAlert("请填写完整信息"); return; }
+
+        btn.innerText = "查询中...";
+        btn.disabled = true;
+        errDiv.style.display = 'none';
+
+        try {
+            const resp = await fetch(csvUrl + '&t=' + new Date().getTime());
+            const text = await resp.text();
+            const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+            
+            let found = false;
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].split(',').map(c => c.replace(/"/g, '').trim());
+                if (cols.length >= 6) { 
+                    const dbChi = cols[0].replace(/\s+/g, '').toUpperCase();
+                    const dbEng = (cols[4] || "").replace(/\s+/g, '').toUpperCase();
+                    const dbPhone = cols[1].replace(/\D/g, '').slice(-4);
+
+                    if ((dbChi === userInput || dbEng === userInput) && dbPhone === phoneInput) {
+                        const rawUrl = cols[5];
+                        let id = "";
+                        if (rawUrl.includes('/d/')) id = rawUrl.split('/d/')[1].split('/')[0];
+                        else if (rawUrl.includes('id=')) id = rawUrl.split('id=')[1].split('&')[0];
+                        
+                        if(id) {
+                            const fullImgUrl = `https://drive.google.com/thumbnail?id=${id}&sz=w1200`;
+                            const imgElement = document.getElementById('memberCardImg');
+                            imgElement.src = fullImgUrl;
+                            imgElement.onload = () => {
+                                document.getElementById('modal').style.display = 'flex';
+                                btn.innerText = "查询会员证";
+                                btn.disabled = false;
+                            };
+                        }
+                        found = true; break;
+                    }
+                }
+            }
+            if (!found) {
+                errDiv.style.display = 'block';
+                const msg = encodeURIComponent("心愿FM你好，我是会员但透过网页查询不到会员编号，请协助。");
+                document.getElementById('waLink').href = `https://wa.me/${hotLine}?text=${msg}`;
+                btn.innerText = "查询会员证";
+                btn.disabled = false;
+            }
+        } catch (e) {
+            showAlert("网络似乎有点慢，请稍后重试");
+            btn.innerText = "查询会员证";
+            btn.disabled = false;
+        }
+    }
+
+    function requestFull() {
+        const img = document.getElementById('memberCardImg');
+        if (img.requestFullscreen) img.requestFullscreen();
+        else if (img.webkitRequestFullscreen) img.webkitRequestFullscreen();
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }
+</script>
+</body>
+</html>
