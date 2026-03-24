@@ -1,43 +1,23 @@
-    async function init() {
-        try {
-            const resp = await fetch(csvUrl);
-            const text = await resp.text();
-            
-            // 简单的行分割
-            const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
-            
-            allActivities = lines.slice(1).map(line => {
-                // 更加稳健的 CSV 字段分割
-                const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
-                
-                // 【关键改动】扫描第 14, 15, 16 位（对应 O, P, Q 栏），防止偏移
-                const statusCheck = (cols[14] || "") + (cols[15] || "") + (cols[16] || "");
-                
-                return {
-                    name: cols[0] || "未命名活动",
-                    desc: cols[1] || "",
-                    org: cols[2] || "",
-                    startDate: cols[3] || "",
-                    endDate: cols[4] || "",
-                    startTime: cols[5] || "",
-                    endTime: cols[6] || "",
-                    location: cols[7] || "",
-                    state: cols[8] || "",
-                    fee: cols[9] || "",
-                    contact: cols[10] || "",
-                    phone: cols[11] || "",
-                    status: statusCheck, 
-                    poster: cols[16] || cols[17] || "" // 同样海报也往后探一格
-                };
-            }).filter(item => 
-                item.status.includes("通过") || 
-                item.status.includes("批准") || 
-                item.status.includes("已通过")
-            );
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>心愿 FM - 全马佛教活动指南</title>
+    <style>
+        :root { --primary: #E08870; --bg-soft: #E7A595; --wa-green: #25d366; }
+        body { background-color: var(--bg-soft); font-family: "Microsoft YaHei", sans-serif; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+        
+        header { width: 100%; background: white; padding: 20px 0; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; }
+        .logo-img { width: 60px; margin-bottom: 5px; }
+        h2 { color: var(--primary); margin: 0; font-size: 20px; }
+        
+        /* 筛选区 */
+        .filter-container { width: 90%; max-width: 500px; margin: 20px 0; display: flex; gap: 10px; }
+        select { flex: 1; padding: 12px; border-radius: 12px; border: none; outline: none; font-size: 14px; background: white; color: #555; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
 
-            renderList(allActivities);
-        } catch (e) {
-            console.error("加载错误:", e);
-            showAlert("调取失败，请检查网络或表格发布设置。");
-        }
-    }
+        /* 活动列表 */
+        .activity-list { width: 90%; max-width: 500px; padding-bottom: 50px; }
+        .activity-card { background: white; border-radius: 18px; padding: 15px; margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); cursor: pointer; }
+        .card-date { color: var(--primary); font-weight: bold; font-size: 14px; margin-bottom: 5px; }
+        .card-title { font-size: 17px
