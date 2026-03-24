@@ -1,6 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>心愿 FM - 全马佛教活动指南</title>
+    <style>
+        :root { --primary: #E08870; --bg-soft: #E7A595; }
+        body { background-color: var(--bg-soft); font-family: "Microsoft YaHei", sans-serif; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+        
+        header { width: 100%; background: white; padding: 20px 0; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; }
+        .logo-img { width: 60px; margin-bottom: 5px; }
+        h2 { color: var(--primary); margin: 0; font-size: 20px; }
+        
+        /* 筛选区 */
+        .filter-container { width: 90%; max-width: 500px; margin: 20px 0; display: flex; gap: 10px; }
+        select { flex: 1; padding: 12px; border-radius: 12px; border: none; outline: none; font-size: 14px; background: white; color: #555; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+        /* 活动列表 */
+        .activity-list { width: 90%; max-width: 500px; padding-bottom: 50px; }
+        .activity-card { background: white; border-radius: 18px; padding: 15px; margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); cursor: pointer; }
+        .card-date { color: var(--primary); font-weight: bold; font-size: 14px; margin-bottom: 5px; }
+        .card-title { font-size: 17px; font-weight: bold; color: #333; margin-bottom: 8px; }
+        .card-info { color: #887470; font-size: 13px; display: flex; gap: 10px; align-items: center; }
+        .state-tag { background: #fdf2f0; color: var(--primary); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+
+        /* 详情弹出层 */
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 1000; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        #posterImg { width: 100%; border-radius: 12px; margin-bottom: 20px; display: none; }
+        .detail-content { color: white; line-height: 1.6; }
+        .detail-title { font-size: 22px; font-weight: bold; margin-bottom: 15px; color: var(--primary); border-left: 5px solid var(--primary); padding-left: 12px; }
+        .detail-item { font-size: 15px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
+        .detail-item b { color: var(--bg-soft); margin-right: 5px; }
+        .btn-close { margin: 30px 0; color: white; border: 1.5px solid rgba(255,255,255,0.5); padding: 15px; text-align: center; border-radius: 30px; font-weight: bold; }
+
+        /* 自定义提示框 */
+        #customAlert { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; }
+        .alert-box { background: white; width: 280px; border-radius: 20px; text-align: center; overflow: hidden; }
+        .alert-header { background: #fdf2f0; padding: 15px; color: var(--primary); font-weight: bold; }
+        .alert-body { padding: 20px; color: #555; }
+        .alert-footer { padding: 15px; border-top: 1px solid #eee; color: var(--primary); font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <img src="https://i.ibb.co/ycBDJ23z/logo.png" class="logo-img">
+        <h2>全马佛教活动指南</h2>
+    </header>
+
+    <div class="filter-container">
+        <select id="stateFilter" onchange="filterData()">
+            <option value="">全部州属</option>
+            <option value="雪兰莪">雪兰莪</option><option value="吉隆坡">吉隆坡</option>
+            <option value="槟城">槟城</option><option value="柔佛">柔佛</option>
+            <option value="霹雳">霹雳</option><option value="马六甲">马六甲</option>
+            <option value="森美兰">森美兰</option><option value="吉打">吉打</option>
+            <option value="彭亨">彭亨</option><option value="登嘉楼">登嘉楼</option>
+            <option value="吉兰丹">吉兰丹</option><option value="玻璃市">玻璃市</option>
+            <option value="砂拉越">砂拉越</option><option value="沙巴">沙巴</option>
+        </select>
+        <select id="monthFilter" onchange="filterData()">
+            <option value="">全部月份</option>
+            <option value="01">1月</option><option value="02">2月</option>
+            <option value="03">3月</option><option value="04">4月</option>
+            <option value="05">5月</option><option value="06">6月</option>
+            <option value="07">7月</option><option value="08">8月</option>
+            <option value="09">9月</option><option value="10">10月</option>
+            <option value="11">11月</option><option value="12">12月</option>
+        </select>
+    </div>
+
+    <div class="activity-list" id="listBody">
+        <p style="text-align: center; color: white;">数据加载中...</p>
+    </div>
+
+    <div id="modal">
+        <img id="posterImg" src="">
+        <div class="detail-content" id="detailBody"></div>
+        <div class="btn-close" onclick="closeModal()">返回列表</div>
+    </div>
+
+    <div id="customAlert">
+        <div class="alert-box"><div class="alert-header">心愿 FM 提示</div><div id="alertMsg" class="alert-body"></div><div class="alert-footer" onclick="closeAlert()">好 的</div></div>
+    </div>
+
 <script>
     const sheetId = '1Hz97SCxNiKpg6M4SAsT2zx4XyGJxzAIVHFQJfKiWPuU';
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&t=${new Date().getTime()}`;
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0&t=${new Date().getTime()}`;
 
     let allActivities = [];
 
@@ -14,47 +100,41 @@
         try {
             const resp = await fetch(csvUrl);
             const text = await resp.text();
+            const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
             
-            // 使用更强大的 CSV 解析逻辑，防止内容里的逗号干扰
-            const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
-            
+            // 简单的 CSV 解析逻辑
             allActivities = lines.slice(1).map(line => {
-                // 这个正则可以正确处理带引号的 CSV 字段
+                // 仅处理双引号包裹的情况，确保不因简介里的逗号断开
                 const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
                 
                 return {
-                    name: cols[0],       // A: 活动名称
-                    desc: cols[1],       // B: 简介
-                    org: cols[2],        // C: 主办单位
-                    startDate: cols[3],  // D: 日期开始 (30/06/2026)
-                    endDate: cols[4],    // E: 日期结束
-                    startTime: cols[5],  // F: 时间开始
-                    endTime: cols[6],    // G: 时间结束
-                    location: cols[7],   // H: 地点
-                    state: cols[8],      // I: 州属
-                    fee: cols[9],        // J: 费用
-                    contact: cols[10],   // K: 负责人
-                    phone: cols[11],     // L: 联络方式
-                    // M, N, O 暂时跳过
-                    status: cols[15],    // P: 审批状态 (第 16 列，索引是 15)
-                    poster: cols[16] || "" // Q: 海报链接 (第 17 列，索引是 16)
+                    name: cols[0] || "未命名活动",
+                    desc: cols[1] || "",
+                    org: cols[2] || "",
+                    startDate: cols[3] || "",
+                    endDate: cols[4] || "",
+                    startTime: cols[5] || "",
+                    endTime: cols[6] || "",
+                    location: cols[7] || "",
+                    state: cols[8] || "",
+                    fee: cols[9] || "",
+                    contact: cols[10] || "",
+                    phone: cols[11] || "",
+                    status: cols[15] || "", // 第 16 列 P 栏
+                    poster: cols[16] || ""  // 第 17 列 Q 栏
                 };
-            }).filter(a => a.status === "通过" || a.status === "已通过");
+            }).filter(item => item.status === "通过");
 
             renderList(allActivities);
         } catch (e) {
-            showAlert("活动资料调取失败，请检查网络。");
+            console.error(e);
+            showAlert("调取失败，请确保表格已“发布到网络”。");
         }
     }
 
     function renderList(data) {
         const listBody = document.getElementById('listBody');
-        listBody.innerHTML = "";
-
-        if (data.length === 0) {
-            listBody.innerHTML = '<p style="text-align: center; color: white; padding: 20px;">暂无已通过审核的活动。</p>';
-            return;
-        }
+        listBody.innerHTML = (data.length === 0) ? '<p style="text-align: center; color: white;">暂无已通过的活动。</p>' : "";
 
         data.forEach(item => {
             const card = document.createElement('div');
@@ -63,10 +143,7 @@
             card.innerHTML = `
                 <div class="card-date">${item.startDate}</div>
                 <div class="card-title">${item.name}</div>
-                <div class="card-info">
-                    <span class="state-tag">${item.state}</span>
-                    <span>${item.org}</span>
-                </div>
+                <div class="card-info"><span class="state-tag">${item.state}</span><span>${item.org}</span></div>
             `;
             listBody.appendChild(card);
         });
@@ -77,17 +154,11 @@
         const month = document.getElementById('monthFilter').value;
 
         const filtered = allActivities.filter(a => {
-            const matchState = state === "" || a.state === state;
-            
-            // 兼容 30/06/2026 格式提取月份
+            const matchState = (state === "" || a.state === state);
             let m = "";
-            if (a.startDate && a.startDate.includes('/')) {
-                m = a.startDate.split('/')[1]; // 拿到 06
-            } else if (a.startDate && a.startDate.includes('-')) {
-                m = a.startDate.split('-')[1]; // 拿到 06
-            }
-            
-            const matchMonth = month === "" || m === month;
+            if (a.startDate.includes('/')) m = a.startDate.split('/')[1];
+            else if (a.startDate.includes('-')) m = a.startDate.split('-')[1];
+            const matchMonth = (month === "" || m === month);
             return matchState && matchMonth;
         });
         renderList(filtered);
@@ -101,25 +172,21 @@
             else if (item.poster.includes('id=')) id = item.poster.split('id=')[1].split('&')[0];
             poster.src = id ? `https://drive.google.com/thumbnail?id=${id}&sz=w1000` : item.poster;
             poster.style.display = 'block';
-        } else {
-            poster.style.display = 'none';
-        }
+        } else { poster.style.display = 'none'; }
 
         document.getElementById('detailBody').innerHTML = `
             <div class="detail-title">${item.name}</div>
-            <div class="detail-item"><b>主办单位：</b>${item.org}</div>
+            <div class="detail-item"><b>主办：</b>${item.org}</div>
             <div class="detail-item"><b>日期：</b>${item.startDate} 至 ${item.endDate}</div>
-            <div class="detail-item"><b>时间：</b>${item.startTime} - ${item.endTime}</div>
             <div class="detail-item"><b>地点：</b>${item.location} (${item.state})</div>
-            <div class="detail-item"><b>费用：</b>${item.fee}</div>
-            <div class="detail-item"><b>联络人：</b>${item.contact} (${item.phone})</div>
-            <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:15px 0;">
-            <div class="detail-item"><b>简介：</b><br>${item.desc}</div>
+            <div class="detail-item"><b>联系：</b>${item.contact} ${item.phone}</div>
+            <div class="detail-item" style="border:none; margin-top:15px;"><b>简介：</b><br>${item.desc}</div>
         `;
         document.getElementById('modal').style.display = 'flex';
     }
 
     function closeModal() { document.getElementById('modal').style.display = 'none'; }
-
     init();
 </script>
+</body>
+</html>
