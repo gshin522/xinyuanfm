@@ -75,8 +75,11 @@
             const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
             
             allActivities = lines.slice(1).map(line => {
+                // 稳健解析 CSV，防止简介内的逗号破坏结构
                 const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+                
                 return {
+                    // A=0(时间), B=1(Email), C=2(名称)
                     name: cols[2] || "未命名活动",
                     desc: cols[3] || "",
                     org: cols[4] || "",
@@ -89,4 +92,74 @@
                     fee: cols[11] || "",
                     contact: cols[12] || "",
                     phone: cols[13] || "",
-                    status: cols
+                    // 适配截图：P 栏是审批 (索引 15)，Q 栏是海报 (索引 16)
+                    status: cols[15] || "",
+                    poster: cols[16] || ""
+                };
+            }).filter(a => a.status.includes("通过") || a.status.includes("批准"));
+
+            renderList(allActivities);
+        } catch (e) {
+            console.error("加载错误:", e);
+            document.getElementById('listBody').innerHTML = '<p style="text-align: center; color: white;">加载失败，请检查网络发布设置。</p>';
+        }
+    }
+
+    function renderList(data) {
+        const listBody = document.getElementById('listBody');
+        listBody.innerHTML = (data.length === 0) ? '<p style="text-align: center; color: white;">暂无已通过的活动。</p>' : "";
+        data.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'activity-card';
+            card.onclick = () => showDetail(item);
+            card.innerHTML = `
+                <div class="card-date">${item.startDate}</div>
+                <div class="card-title">${item.name}</div>
+                <div class="card-info"><span class="state-tag">${item.state}</span><span>${item.org}</span></div>
+            `;
+            listBody.appendChild(card);
+        });
+    }
+
+    function filterData() {
+        const state = document.getElementById('stateFilter').value;
+        const month = document.getElementById('monthFilter').value;
+        const filtered = allActivities.filter(a => {
+            const matchState = state === "" || a.state === state;
+            let m = "";
+            if (a.startDate.includes('/')) m = a.startDate.split('/')[1];
+            else if (a.startDate.includes('-')) m = a.startDate.split('-')[1];
+            // 补齐月份格式(例如将 "2" 变成 "02")以便匹配下拉框
+            const formattedM = m.length === 1 ? '0' + m : m;
+            const matchMonth = month === "" || formattedM === month;
+            return matchState && matchMonth;
+        });
+        renderList(filtered);
+    }
+
+    function showDetail(item) {
+        const poster = document.getElementById('posterImg');
+        if (item.poster) {
+            let id = "";
+            if (item.poster.includes('/d/')) id = item.poster.split('/d/')[1].split('/')[0];
+            else if (item.poster.includes('id=')) id = item.poster.split('id=')[1].split('&')[0];
+            poster.src = id ? `https://drive.google.com/thumbnail?id=${id}&sz=w1000` : item.poster;
+            poster.style.display = 'block';
+        } else { poster.style.display = 'none'; }
+
+        document.getElementById('detailBody').innerHTML = `
+            <div class="detail-title">${item.name}</div>
+            <div class="detail-item"><b>主办单位：</b>${item.org}</div>
+            <div class="detail-item"><b>日期时间：</b>${item.startDate} (${item.startTime})</div>
+            <div class="detail-item"><b>地点：</b>${item.location} (${item.state})</div>
+            <div class="detail-item"><b>联系方式：</b>${item.contact} ${item.phone}</div>
+            <div class="detail-item" style="border:none;margin-top:10px;"><b>活动简介：</b><br>${item.desc}</div>
+        `;
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+    init();
+</script>
+</body>
+</html>
