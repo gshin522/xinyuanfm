@@ -11,20 +11,20 @@
         .logo-img { width: 60px; margin-bottom: 5px; }
         h2 { color: var(--primary); margin: 0; font-size: 20px; }
         .filter-container { width: 90%; max-width: 500px; margin: 20px 0; display: flex; gap: 10px; }
-        select { flex: 1; padding: 12px; border-radius: 12px; border: none; outline: none; font-size: 14px; background: white; color: #555; }
+        select { flex: 1; padding: 12px; border-radius: 12px; border: none; outline: none; font-size: 14px; background: white; color: #555; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .activity-list { width: 90%; max-width: 500px; padding-bottom: 50px; }
         .activity-card { background: white; border-radius: 18px; padding: 15px; margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); cursor: pointer; }
         .card-date { color: var(--primary); font-weight: bold; font-size: 14px; margin-bottom: 5px; }
         .card-title { font-size: 17px; font-weight: bold; color: #333; margin-bottom: 8px; }
-        .card-info { color: #887470; font-size: 13px; display: flex; gap: 10px; }
-        .state-tag { background: #fdf2f0; color: var(--primary); padding: 2px 8px; border-radius: 6px; font-size: 11px; }
+        .card-info { color: #887470; font-size: 13px; display: flex; gap: 10px; align-items: center; }
+        .state-tag { background: #fdf2f0; color: var(--primary); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
         #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 1000; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; }
-        #posterImg { width: 100%; border-radius: 10px; margin-bottom: 15px; }
-        .detail-content { color: white; width: 100%; }
-        .detail-title { font-size: 20px; font-weight: bold; margin-bottom: 15px; border-left: 4px solid var(--primary); padding-left: 10px; }
-        .detail-item { font-size: 14px; margin-bottom: 8px; color: #ccc; }
-        .detail-item b { color: white; }
-        .btn-close { margin: 30px 0; color: white; border: 1px solid rgba(255,255,255,0.3); padding: 12px; text-align: center; border-radius: 30px; }
+        #posterImg { width: 100%; border-radius: 12px; margin-bottom: 20px; display: none; }
+        .detail-content { color: white; line-height: 1.6; }
+        .detail-title { font-size: 22px; font-weight: bold; margin-bottom: 15px; color: var(--primary); border-left: 5px solid var(--primary); padding-left: 12px; }
+        .detail-item { font-size: 15px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
+        .detail-item b { color: var(--bg-soft); margin-right: 5px; }
+        .btn-close { margin: 30px 0; color: white; border: 1.5px solid rgba(255,255,255,0.5); padding: 15px; text-align: center; border-radius: 30px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -39,4 +39,54 @@
             <option value="">全部州属</option>
             <option value="雪兰莪">雪兰莪</option><option value="吉隆坡">吉隆坡</option><option value="槟城">槟城</option>
             <option value="柔佛">柔佛</option><option value="霹雳">霹雳</option><option value="马六甲">马六甲</option>
-            <option value="森美兰">森美兰</option><option value="吉打">吉打</option><option value="彭亨">
+            <option value="森美兰">森美兰</option><option value="吉打">吉打</option><option value="彭亨">彭亨</option>
+            <option value="登嘉楼">登嘉楼</option><option value="吉兰丹">吉兰丹</option><option value="玻璃市">玻璃市</option>
+            <option value="砂拉越">砂拉越</option><option value="沙巴">沙巴</option>
+        </select>
+        <select id="monthFilter" onchange="filterData()">
+            <option value="">全部月份</option>
+            <option value="01">1月</option><option value="02">2月</option><option value="03">3月</option>
+            <option value="04">4月</option><option value="05">5月</option><option value="06">6月</option>
+            <option value="07">7月</option><option value="08">8月</option><option value="09">9月</option>
+            <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+        </select>
+    </div>
+
+    <div class="activity-list" id="listBody">
+        <p style="text-align: center; color: white;">数据加载中...</p>
+    </div>
+
+    <div id="modal">
+        <img id="posterImg" src="">
+        <div class="detail-content" id="detailBody"></div>
+        <div class="btn-close" onclick="closeModal()">返回列表</div>
+    </div>
+
+<script>
+    const sheetId = '1Hz97SCxNiKpg6M4SAsT2zx4XyGJxzAIVHFQJfKiWPuU';
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&t=${new Date().getTime()}`;
+
+    let allActivities = [];
+
+    async function init() {
+        try {
+            const resp = await fetch(csvUrl);
+            const text = await resp.text();
+            const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+            
+            allActivities = lines.slice(1).map(line => {
+                const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+                return {
+                    name: cols[2] || "未命名活动",
+                    desc: cols[3] || "",
+                    org: cols[4] || "",
+                    startDate: cols[5] || "",
+                    endDate: cols[6] || "",
+                    startTime: cols[7] || "",
+                    endTime: cols[8] || "",
+                    location: cols[9] || "",
+                    state: cols[10] || "",
+                    fee: cols[11] || "",
+                    contact: cols[12] || "",
+                    phone: cols[13] || "",
+                    status: cols
