@@ -7,30 +7,46 @@
     <style>
         :root { --primary: #E08870; --bg-soft: #E7A595; --accent-live: #2ed573; --gray-out: #a0a0a0; }
         body { background-color: var(--bg-soft); font-family: "Microsoft YaHei", sans-serif; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+        
+        /* 导航头 */
         header { width: 100%; background: white; padding: 20px 0; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; position: sticky; top: 0; z-index: 100; }
         .logo-img { width: 60px; margin-bottom: 5px; }
         h2 { color: var(--primary); margin: 0; font-size: 20px; }
         .btn-submit { display: inline-block; margin-top: 12px; background: var(--primary); color: white; padding: 10px 24px; border-radius: 25px; text-decoration: none; font-size: 14px; font-weight: bold; box-shadow: 0 4px 12px rgba(224,136,112,0.3); transition: transform 0.2s; }
+
+        /* 筛选器 */
         .filter-container { width: 90%; max-width: 500px; margin: 20px 0; display: flex; gap: 10px; }
         select { flex: 1; padding: 12px; border-radius: 12px; border: none; outline: none; font-size: 14px; background: white; color: #555; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+        /* 活动卡片 */
         .activity-list { width: 90%; max-width: 500px; padding-bottom: 50px; }
         .activity-card { background: white; border-radius: 18px; padding: 18px; margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); cursor: pointer; border-left: 6px solid var(--primary); position: relative; overflow: hidden; }
+        
+        /* 状态标签 */
         .live-tag { position: absolute; top: 0; right: 0; background: #e6fffb; color: #00876c; font-size: 10px; padding: 5px 12px; border-bottom-left-radius: 14px; font-weight: bold; z-index: 1; display: flex; align-items: center; gap: 4px; border: 1px solid #b5f5ec; }
         .live-dot { height: 7px; width: 7px; background-color: var(--accent-live); border-radius: 50%; display: inline-block; animation: blinker 1.5s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
         .expired-tag { position: absolute; top: 0; right: 0; background: #f5f5f5; color: #888; font-size: 10px; padding: 5px 12px; border-bottom-left-radius: 14px; font-weight: bold; z-index: 1; border: 1px solid #ddd; }
+
         .activity-card.is-live { border-left-color: var(--accent-live); box-shadow: 0 8px 20px rgba(46,213,115,0.15); }
         .activity-card.is-expired { border-left-color: var(--gray-out); opacity: 0.7; filter: grayscale(0.5); }
+
         .card-date { color: var(--primary); font-weight: bold; font-size: 14px; margin-bottom: 5px; }
         .is-expired .card-date { color: var(--gray-out); }
         .card-title { font-size: 17px; font-weight: bold; color: #333; margin-bottom: 8px; line-height: 1.4; padding-right: 70px; }
         .card-info { color: #887470; font-size: 13px; display: flex; gap: 8px; align-items: center; }
-        .state-tag { color: white; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+        
+        /* 州属小旗帜标签 */
+        .state-tag { color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; display: flex; align-items: center; gap: 6px; }
+        .flag-icon { width: 18px; height: auto; border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+
+        /* 详情弹窗 */
         #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; z-index: 1000; flex-direction: column; padding: 25px; box-sizing: border-box; overflow-y: auto; }
         .detail-content { color: white; line-height: 1.6; }
         .detail-title { font-size: 22px; font-weight: bold; margin-bottom: 20px; color: var(--primary); border-left: 5px solid var(--primary); padding-left: 12px; }
         .detail-item { font-size: 15px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
         .detail-item b { color: var(--bg-soft); margin-right: 10px; min-width: 80px; display: inline-block; }
+        
         .nav-buttons { display: flex; gap: 10px; margin-top: 10px; }
         .btn-nav { flex: 1; padding: 10px; border-radius: 8px; text-decoration: none; text-align: center; font-size: 13px; font-weight: bold; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; }
         .btn-google { background: #4285F4; }
@@ -48,7 +64,7 @@
 
     <div class="filter-container">
         <select id="stateFilter" onchange="filterData()">
-            <option value="">全部区域</option>
+            <option value="">🗺️ 全部区域</option>
             <option value="ZOOM/其他">🌐 线上/Zoom</option>
             <option value="雪兰莪">雪兰莪</option><option value="吉隆坡">吉隆坡</option><option value="槟城">槟城</option>
             <option value="柔佛">柔佛</option><option value="霹雳">霹雳</option><option value="马六甲">马六甲</option>
@@ -57,7 +73,7 @@
             <option value="砂拉越">砂拉越</option><option value="沙巴">沙巴</option>
         </select>
         <select id="monthFilter" onchange="filterData()">
-            <option value="">全部月份</option>
+            <option value="">📅 全部月份</option>
             <option value="01">1月</option><option value="02">2月</option><option value="03">3月</option>
             <option value="04">4月</option><option value="05">5月</option><option value="06">6月</option>
             <option value="07">7月</option><option value="08">8月</option><option value="09">9月</option>
@@ -78,7 +94,35 @@
     const sheetId = '1Hz97SCxNiKpg6M4SAsT2zx4XyGJxzAIVHFQJfKiWPuU';
     const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&cache=${Math.random()}`;
 
+    // 州旗图片库
+    const stateFlags = {
+        '雪兰莪': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Flag_of_Selangor.svg/64px-Flag_of_Selangor.svg.png',
+        '吉隆坡': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Flag_of_the_Federal_Territories_of_Malaysia.svg/64px-Flag_of_the_Federal_Territories_of_Malaysia.svg.png',
+        '槟城': 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Flag_of_Penang.svg/64px-Flag_of_Penang.svg.png',
+        '柔佛': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Flag_of_Johor.svg/64px-Flag_of_Johor.svg.png',
+        '霹雳': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Flag_of_Perak.svg/64px-Flag_of_Perak.svg.png',
+        '马六甲': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Flag_of_Malacca.svg/64px-Flag_of_Malacca.svg.png',
+        '森美兰': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Flag_of_Negeri_Sembilan.svg/64px-Flag_of_Negeri_Sembilan.svg.png',
+        '吉打': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Flag_of_Kedah.svg/64px-Flag_of_Kedah.svg.png',
+        '彭亨': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Flag_of_Pahang.svg/64px-Flag_of_Pahang.svg.png',
+        '登嘉楼': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Flag_of_Terengganu.svg/64px-Flag_of_Terengganu.svg.png',
+        '吉兰丹': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Flag_of_Kelantan.svg/64px-Flag_of_Kelantan.svg.png',
+        '玻璃市': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Flag_of_Perlis.svg/64px-Flag_of_Perlis.svg.png',
+        '砂拉越': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Flag_of_Sarawak.svg/64px-Flag_of_Sarawak.svg.png',
+        '沙巴': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Flag_of_Sabah.svg/64px-Flag_of_Sabah.svg.png',
+        'ZOOM': 'https://cdn-icons-png.flaticon.com/512/2065/2065064.png',
+        '线上': 'https://cdn-icons-png.flaticon.com/512/2065/2065064.png'
+    };
+
     let allActivities = [];
+
+    function getFlagHTML(state) {
+        let url = "";
+        for (let key in stateFlags) {
+            if (state.toUpperCase().includes(key)) { url = stateFlags[key]; break; }
+        }
+        return url ? `<img src="${url}" class="flag-icon">` : "📍 ";
+    }
 
     function getTagStyle(state) {
         if (state.toUpperCase().includes("ZOOM") || state.includes("线上")) return `style="background: #34495e;"`;
@@ -86,7 +130,6 @@
         return `style="background: ${colors[state] || '#E08870'};"`;
     }
 
-    // 强化版日期解析：专门处理 DD/MM/YYYY
     function parseDateCustom(dateStr) {
         if (!dateStr) return new Date(2099, 0, 1);
         const parts = dateStr.split(/[\/\-\.]/);
@@ -122,7 +165,6 @@
                 const cols = robustSplit(line);
                 const start = parseDateCustom(cols[5]);
                 const end = cols[6] ? parseDateCustom(cols[6]) : start;
-                
                 return {
                     name: cols[2] || "未命名活动", desc: cols[3] || "", org: cols[4] || "",
                     startDate: cols[5] || "", endDate: cols[6] || "",
@@ -136,7 +178,6 @@
                 };
             }).filter(a => a.status && (a.status.includes("通过") || a.status.includes("批准")));
 
-            // 核心排序逻辑
             allActivities.sort((a, b) => {
                 if (a.isExpired !== b.isExpired) return a.isExpired ? 1 : -1;
                 if (a.isLive !== b.isLive) return a.isLive ? -1 : 1;
@@ -155,7 +196,15 @@
             card.className = `activity-card ${item.isLive ? 'is-live' : ''} ${item.isExpired ? 'is-expired' : ''}`;
             card.onclick = () => showDetail(item);
             let tagHTML = item.isLive ? '<div class="live-tag"><span class="live-dot"></span>今天的活动</div>' : (item.isExpired ? '<div class="expired-tag">🔘 已圆满</div>' : "");
-            card.innerHTML = `${tagHTML}<div class="card-date">${item.startDate}</div><div class="card-title">${item.name}</div><div class="card-info"><span class="state-tag" ${getTagStyle(item.state)}>${item.state}</span><span>${item.org}</span></div>`;
+            
+            card.innerHTML = `
+                ${tagHTML}
+                <div class="card-date">${item.startDate}</div>
+                <div class="card-title">${item.name}</div>
+                <div class="card-info">
+                    <span class="state-tag" ${getTagStyle(item.state)}>${getFlagHTML(item.state)} ${item.state}</span>
+                    <span>${item.org}</span>
+                </div>`;
             listBody.appendChild(card);
         });
     }
