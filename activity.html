@@ -8,27 +8,29 @@
         :root { --primary: #E08870; --bg-soft: #E7A595; --accent-live: #2ed573; --gray-out: #a0a0a0; }
         body { background-color: var(--bg-soft); font-family: "Microsoft YaHei", sans-serif; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
         
-        /* 头部 */
+        /* 导航头 */
         header { width: 100%; background: white; padding: 20px 0; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; position: sticky; top: 0; z-index: 100; }
         .logo-img { width: 60px; margin-bottom: 5px; }
         h2 { color: var(--primary); margin: 0; font-size: 20px; }
+        
+        /* 投稿按钮 */
         .btn-submit { display: inline-block; margin-top: 12px; background: var(--primary); color: white; padding: 10px 24px; border-radius: 25px; text-decoration: none; font-size: 14px; font-weight: bold; box-shadow: 0 4px 12px rgba(224,136,112,0.3); transition: transform 0.2s; }
+        .btn-submit:active { transform: scale(0.95); }
 
         /* 筛选器 */
         .filter-container { width: 90%; max-width: 500px; margin: 20px 0; display: flex; gap: 10px; }
         select { flex: 1; padding: 12px; border-radius: 12px; border: none; outline: none; font-size: 14px; background: white; color: #555; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
 
-        /* 卡片列表 */
+        /* 活动卡片 */
         .activity-list { width: 90%; max-width: 500px; padding-bottom: 50px; }
         .activity-card { background: white; border-radius: 18px; padding: 18px; margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); cursor: pointer; border-left: 6px solid var(--primary); position: relative; overflow: hidden; transition: all 0.3s ease; }
         
-        /* 标签逻辑 */
+        /* 标签与灯光 */
         .live-tag { position: absolute; top: 0; right: 0; background: #e6fffb; color: #00876c; font-size: 10px; padding: 5px 12px; border-bottom-left-radius: 14px; font-weight: bold; z-index: 1; display: flex; align-items: center; gap: 4px; border: 1px solid #b5f5ec; }
         .live-dot { height: 7px; width: 7px; background-color: var(--accent-live); border-radius: 50%; display: inline-block; animation: blinker 1.5s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
         .expired-tag { position: absolute; top: 0; right: 0; background: #f5f5f5; color: #888; font-size: 10px; padding: 5px 12px; border-bottom-left-radius: 14px; font-weight: bold; z-index: 1; border: 1px solid #ddd; }
 
-        /* 卡片特殊状态 */
         .activity-card.is-live { border-left-color: var(--accent-live); box-shadow: 0 8px 20px rgba(46,213,115,0.15); }
         .activity-card.is-expired { border-left-color: var(--gray-out); opacity: 0.7; filter: grayscale(0.5); }
 
@@ -38,13 +40,14 @@
         .card-info { color: #887470; font-size: 13px; display: flex; gap: 8px; align-items: center; }
         .state-tag { color: white; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
 
-        /* 弹窗及导航按钮 */
+        /* 详情弹窗 */
         #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; z-index: 1000; flex-direction: column; padding: 25px; box-sizing: border-box; overflow-y: auto; }
         .detail-content { color: white; line-height: 1.6; }
         .detail-title { font-size: 22px; font-weight: bold; margin-bottom: 20px; color: var(--primary); border-left: 5px solid var(--primary); padding-left: 12px; }
         .detail-item { font-size: 15px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
         .detail-item b { color: var(--bg-soft); margin-right: 10px; min-width: 80px; display: inline-block; }
         
+        /* 导航按钮 */
         .nav-buttons { display: flex; gap: 10px; margin-top: 10px; }
         .btn-nav { flex: 1; padding: 10px; border-radius: 8px; text-decoration: none; text-align: center; font-size: 13px; font-weight: bold; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; }
         .btn-google { background: #4285F4; }
@@ -63,7 +66,8 @@
 
     <div class="filter-container">
         <select id="stateFilter" onchange="filterData()">
-            <option value="">全部州属</option>
+            <option value="">全部区域</option>
+            <option value="线上">🌐 线上/Zoom</option>
             <option value="雪兰莪">雪兰莪</option><option value="吉隆坡">吉隆坡</option><option value="槟城">槟城</option>
             <option value="柔佛">柔佛</option><option value="霹雳">霹雳</option><option value="马六甲">马六甲</option>
             <option value="森美兰">森美兰</option><option value="吉打">吉打</option><option value="彭亨">彭亨</option>
@@ -95,6 +99,7 @@
     let allActivities = [];
 
     function getTagStyle(state) {
+        if (state.includes("线上") || state.toLowerCase().includes("zoom")) return `style="background: #34495e;"`;
         const colors = { '雪兰莪': '#E91E63', '吉隆坡': '#673AB7', '槟城': '#2196F3', '柔佛': '#F44336', '霹雳': '#FF9800', '马六甲': '#795548', '森美兰': '#E91E63', '吉打': '#4CAF50', '彭亨': '#607D8B', '沙巴': '#009688', '砂拉越': '#FF5722' };
         return `style="background: ${colors[state] || '#E08870'};"`;
     }
@@ -178,9 +183,11 @@
     }
 
     function showDetail(item) {
-        // 判断是否线上活动
         const loc = item.location.toLowerCase();
-        const isOnline = loc.includes("线上") || loc.includes("online") || loc.includes("zoom") || loc.includes("live") || loc.includes("google meet");
+        const stateStr = item.state.toLowerCase();
+        // 增加对州属是否包含“线上/zoom”的判断
+        const isOnline = loc.includes("线上") || loc.includes("online") || loc.includes("zoom") || 
+                         stateStr.includes("线上") || stateStr.includes("zoom");
 
         let navHTML = "";
         if (!isOnline) {
