@@ -74,11 +74,11 @@
             <option value="沙巴">🏔️ 沙巴 (Sabah)</option>
         </select>
         <select id="monthFilter" onchange="filterData()">
-            <option value="">📅 全部月份</option>
-            <option value="01">1️⃣ 1月</option><option value="02">2️⃣ 2月</option><option value="03">3️⃣ 3月</option>
-            <option value="04">4️⃣ 4月</option><option value="05">5️⃣ 5月</option><option value="06">6️⃣ 6月</option>
-            <option value="07">7️⃣ 7月</option><option value="08">8️⃣ 8月</option><option value="09">9️⃣ 9月</option>
-            <option value="10">🔟 10月</option><option value="11">🕚 11月</option><option value="12">🕛 12月</option>
+            <option value="">🗓️ 全部月份</option>
+            <option value="01">🗓️ 1月</option><option value="02">🗓️ 2月</option><option value="03">🗓️ 3月</option>
+            <option value="04">🗓️ 4月</option><option value="05">🗓️ 5月</option><option value="06">🗓️ 6月</option>
+            <option value="07">🗓️ 7月</option><option value="08">🗓️ 8月</option><option value="09">🗓️ 9月</option>
+            <option value="10">🗓️ 10月</option><option value="11">🗓️ 11月</option><option value="12">🗓️ 12月</option>
         </select>
     </div>
 
@@ -95,7 +95,6 @@
     const sheetId = '1Hz97SCxNiKpg6M4SAsT2zx4XyGJxzAIVHFQJfKiWPuU';
     const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&cache=${Math.random()}`;
 
-    // 州属代表物图标与颜色配置
     const stateStyles = {
         '雪兰莪': { icon: '🚩', color: '#E91E63' },
         '吉隆坡': { icon: '🏛️', color: '#673AB7' },
@@ -120,11 +119,7 @@
     function getTagHTML(state) {
         let icon = "📍"; let bgColor = "#E08870";
         for (let key in stateStyles) {
-            if (state.includes(key)) { 
-                icon = stateStyles[key].icon; 
-                bgColor = stateStyles[key].color;
-                break; 
-            }
+            if (state.includes(key)) { icon = stateStyles[key].icon; bgColor = stateStyles[key].color; break; }
         }
         return `<span class="state-tag" style="background: ${bgColor}">${icon} ${state}</span>`;
     }
@@ -182,7 +177,6 @@
                 if (a.isLive !== b.isLive) return a.isLive ? -1 : 1;
                 return a.startObj - b.startObj;
             });
-
             renderList(allActivities);
         } catch (e) { document.getElementById('listBody').innerHTML = '<p style="text-align: center; color: white;">数据加载异常</p>'; }
     }
@@ -195,15 +189,7 @@
             card.className = `activity-card ${item.isLive ? 'is-live' : ''} ${item.isExpired ? 'is-expired' : ''}`;
             card.onclick = () => showDetail(item);
             let tagHTML = item.isLive ? '<div class="live-tag"><span class="live-dot"></span>今天的活动</div>' : (item.isExpired ? '<div class="expired-tag">🔘 已圆满</div>' : "");
-            
-            card.innerHTML = `
-                ${tagHTML}
-                <div class="card-date">${item.startDate}</div>
-                <div class="card-title">${item.name}</div>
-                <div class="card-info">
-                    ${getTagHTML(item.state)}
-                    <span>${item.org}</span>
-                </div>`;
+            card.innerHTML = `${tagHTML}<div class="card-date">${item.startDate}</div><div class="card-title">${item.name}</div><div class="card-info">${getTagHTML(item.state)}<span>${item.org}</span></div>`;
             listBody.appendChild(card);
         });
     }
@@ -213,8 +199,7 @@
         const month = document.getElementById('monthFilter').value;
         const filtered = allActivities.filter(a => {
             const matchState = state === "" || (a.state && a.state.toUpperCase().includes(state.toUpperCase()));
-            let m = "";
-            const p = a.startDate.split(/[\/\-\.]/);
+            let m = ""; const p = a.startDate.split(/[\/\-\.]/);
             if(p.length === 3) m = p[1].padStart(2, '0');
             return matchState && (month === "" || m === month);
         });
@@ -224,9 +209,7 @@
     function showDetail(item) {
         const loc = item.location.toLowerCase();
         const stateStr = item.state.toLowerCase();
-        const isOnline = loc.includes("线上") || loc.includes("online") || loc.includes("zoom") || 
-                         stateStr.includes("线上") || stateStr.includes("zoom");
-
+        const isOnline = loc.includes("线上") || loc.includes("online") || loc.includes("zoom") || stateStr.includes("线上") || stateStr.includes("zoom");
         let navHTML = "";
         if (!isOnline) {
             const query = encodeURIComponent(item.location + " " + item.state);
@@ -234,18 +217,7 @@
             const wazeUrl = `https://waze.com/ul?q=${query}&navigate=yes`;
             navHTML = `<div class="nav-buttons"><a href="${googleUrl}" target="_blank" class="btn-nav btn-google">📍 Google Maps</a><a href="${wazeUrl}" target="_blank" class="btn-nav btn-waze">🚙 Waze 导航</a></div>`;
         }
-
-        document.getElementById('detailBody').innerHTML = `
-            <div class="detail-title">${item.name}</div>
-            <div class="detail-item"><b>主办单位</b>${item.org}</div>
-            <div class="detail-item"><b>活动日期</b>${item.startDate} ${item.endDate ? '至 '+item.endDate : ''}</div>
-            <div class="detail-item"><b>活动时间</b>${item.startTime} - ${item.endTime}</div>
-            <div class="detail-item"><b>活动地点</b>${item.location} (${item.state}) ${navHTML}</div>
-            <div class="detail-item"><b>费用详情</b>${item.fee}</div>
-            <div class="detail-item"><b>联系方式</b>${item.contact} ${item.phone ? '('+item.phone+')' : ''}</div>
-            ${item.action ? `<div class="detail-item" style="border:none; background:rgba(224,136,112,0.15); padding:15px; border-radius:12px; margin-top:10px;"><b style="display:block; margin-bottom:8px; color:#E08870;">🔗 活动详情/报名链接</b><a href="${item.action}" target="_blank" style="color:#E08870; font-weight:bold; text-decoration:underline; word-break:break-all;">${item.action}</a></div>` : ''}
-            <div class="detail-item" style="border:none;margin-top:15px;"><b style="display:block;margin-bottom:5px;">活动简介</b><div style="color:#ccc;white-space:pre-wrap;">${item.desc}</div></div>
-        `;
+        document.getElementById('detailBody').innerHTML = `<div class="detail-title">${item.name}</div><div class="detail-item"><b>主办单位</b>${item.org}</div><div class="detail-item"><b>活动日期</b>${item.startDate} ${item.endDate ? '至 '+item.endDate : ''}</div><div class="detail-item"><b>活动时间</b>${item.startTime} - ${item.endTime}</div><div class="detail-item"><b>活动地点</b>${item.location} (${item.state}) ${navHTML}</div><div class="detail-item"><b>费用详情</b>${item.fee}</div><div class="detail-item"><b>联系方式</b>${item.contact} ${item.phone ? '('+item.phone+')' : ''}</div>${item.action ? `<div class="detail-item" style="border:none; background:rgba(224,136,112,0.15); padding:15px; border-radius:12px; margin-top:10px;"><b style="display:block; margin-bottom:8px; color:#E08870;">🔗 活动详情/报名链接</b><a href="${item.action}" target="_blank" style="color:#E08870; font-weight:bold; text-decoration:underline; word-break:break-all;">${item.action}</a></div>` : ''}<div class="detail-item" style="border:none;margin-top:15px;"><b style="display:block;margin-bottom:5px;">活动简介</b><div style="color:#ccc;white-space:pre-wrap;">${item.desc}</div></div>`;
         document.getElementById('modal').style.display = 'flex';
     }
 
