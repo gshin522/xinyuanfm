@@ -26,11 +26,20 @@
         .card-title { font-size: 17px; font-weight: bold; color: #333; margin-bottom: 8px; line-height: 1.4; padding-right: 70px; }
         .card-info { color: #887470; font-size: 13px; display: flex; gap: 8px; align-items: center; }
         .state-tag { color: white; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+        
+        /* 弹窗样式 */
         #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; z-index: 1000; flex-direction: column; padding: 25px; box-sizing: border-box; overflow-y: auto; }
         .detail-content { color: white; line-height: 1.6; }
         .detail-title { font-size: 22px; font-weight: bold; margin-bottom: 20px; color: var(--primary); border-left: 5px solid var(--primary); padding-left: 12px; }
         .detail-item { font-size: 15px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
         .detail-item b { color: var(--bg-soft); margin-right: 10px; min-width: 80px; display: inline-block; }
+        
+        /* 导航按钮组 */
+        .nav-buttons { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-nav { flex: 1; padding: 10px; border-radius: 8px; text-decoration: none; text-align: center; font-size: 13px; font-weight: bold; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-google { background: #4285F4; }
+        .btn-waze { background: #33CCFF; }
+
         .btn-close { margin: 40px 0; color: white; border: 1.5px solid rgba(255,255,255,0.5); padding: 15px; text-align: center; border-radius: 30px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
@@ -111,39 +120,27 @@
             const resp = await fetch(csvUrl);
             const text = await resp.text();
             const lines = text.split(/\r?\n(?=(?:(?:[^"]*"){2})*[^"]*$)/).filter(l => l.trim() !== "");
-            
-            const now = new Date();
-            now.setHours(0, 0, 0, 0);
+            const now = new Date(); now.setHours(0, 0, 0, 0);
 
-            let data = lines.slice(1).map(line => {
+            allActivities = lines.slice(1).map(line => {
                 const cols = robustSplit(line);
                 const start = parseDate(cols[5]);
                 const end = parseDate(cols[6]) || start;
                 return {
-                    name: cols[2] || "未命名活动", 
-                    desc: cols[3] || "", 
-                    org: cols[4] || "",
-                    startDate: cols[5] || "", 
-                    endDate: cols[6] || "",
-                    startTime: cols[7] || "", 
-                    endTime: cols[8] || "",
-                    location: cols[9] || "", 
-                    state: cols[10] || "",
-                    fee: cols[12] || "请联系主办方", // M 栏 (索引12)
-                    contact: cols[13] || "",
-                    phone: cols[14] || "", 
-                    action: cols[15] || "", // P 栏 (索引15)
-                    status: cols[16] || "", // Q 栏 (索引16)
+                    name: cols[2] || "未命名活动", desc: cols[3] || "", org: cols[4] || "",
+                    startDate: cols[5] || "", endDate: cols[6] || "",
+                    startTime: cols[7] || "", endTime: cols[8] || "",
+                    location: cols[9] || "", state: cols[10] || "",
+                    fee: cols[12] || "请联系主办方", contact: cols[13] || "",
+                    phone: cols[14] || "", action: cols[15] || "", status: cols[16] || "",
                     isExpired: end && end < now,
                     isLive: start && end && now >= start && now <= end
                 };
-            }).filter(a => a.status && (a.status.includes("通过") || a.status.includes("批准")));
+            }).filter(a => a.status && (a.status.includes("通过") || a.status.includes("批准")))
+              .sort((a, b) => a.isExpired - b.isExpired);
 
-            allActivities = data.sort((a, b) => a.isExpired - b.isExpired);
             renderList(allActivities);
-        } catch (e) {
-            document.getElementById('listBody').innerHTML = '<p style="text-align: center; color: white;">🕯️ 数据点亮失败，请刷新试试。</p>';
-        }
+        } catch (e) { document.getElementById('listBody').innerHTML = '<p style="text-align: center; color: white;">数据加载异常</p>'; }
     }
 
     function renderList(data) {
@@ -153,9 +150,7 @@
             const card = document.createElement('div');
             card.className = `activity-card ${item.isLive ? 'is-live' : ''} ${item.isExpired ? 'is-expired' : ''}`;
             card.onclick = () => showDetail(item);
-            let tagHTML = "";
-            if (item.isLive) tagHTML = '<div class="live-tag"><span class="live-dot"></span>今天的活动</div>';
-            else if (item.isExpired) tagHTML = '<div class="expired-tag">🔘 已圆满</div>';
+            let tagHTML = item.isLive ? '<div class="live-tag"><span class="live-dot"></span>今天的活动</div>' : (item.isExpired ? '<div class="expired-tag">🔘 已圆满</div>' : "");
             card.innerHTML = `${tagHTML}<div class="card-date">${item.startDate}</div><div class="card-title">${item.name}</div><div class="card-info"><span class="state-tag" ${getTagStyle(item.state)}>${item.state}</span><span>${item.org}</span></div>`;
             listBody.appendChild(card);
         });
@@ -166,21 +161,29 @@
         const month = document.getElementById('monthFilter').value;
         const filtered = allActivities.filter(a => {
             const matchState = state === "" || (a.state && a.state.includes(state));
-            let m = "";
-            if (a.startDate.includes('/')) m = a.startDate.split('/')[1];
-            else if (a.startDate.includes('-')) m = a.startDate.split('-')[1];
+            let m = (a.startDate.includes('/') ? a.startDate.split('/')[1] : (a.startDate.includes('-') ? a.startDate.split('-')[1] : ""));
             return matchState && (month === "" || m.padStart(2, '0') === month);
         });
         renderList(filtered);
     }
 
     function showDetail(item) {
+        // 生成导航链接
+        const query = encodeURIComponent(item.location + " " + item.state);
+        const googleUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
+        const wazeUrl = `https://waze.com/ul?q=${query}&navigate=yes`;
+
         document.getElementById('detailBody').innerHTML = `
             <div class="detail-title">${item.name}</div>
             <div class="detail-item"><b>主办单位</b>${item.org}</div>
             <div class="detail-item"><b>活动日期</b>${item.startDate} ${item.endDate ? '至 '+item.endDate : ''}</div>
             <div class="detail-item"><b>活动时间</b>${item.startTime} - ${item.endTime}</div>
-            <div class="detail-item"><b>活动地点</b>${item.location} (${item.state})</div>
+            <div class="detail-item"><b>活动地点</b>${item.location} (${item.state})
+                <div class="nav-buttons">
+                    <a href="${googleUrl}" target="_blank" class="btn-nav btn-google">📍 Google Maps</a>
+                    <a href="${wazeUrl}" target="_blank" class="btn-nav btn-waze">🚙 Waze 导航</a>
+                </div>
+            </div>
             <div class="detail-item"><b>费用详情</b>${item.fee}</div>
             <div class="detail-item"><b>联系方式</b>${item.contact} ${item.phone ? '('+item.phone+')' : ''}</div>
             ${item.action ? `<div class="detail-item" style="border:none; background:rgba(224,136,112,0.15); padding:15px; border-radius:12px; margin-top:10px;"><b style="display:block; margin-bottom:8px; color:#E08870;">🔗 活动详情/报名链接</b><a href="${item.action}" target="_blank" style="color:#E08870; font-weight:bold; text-decoration:underline; word-break:break-all;">${item.action}</a></div>` : ''}
