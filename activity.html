@@ -16,11 +16,11 @@
         .activity-card { background: white; border-radius: 18px; padding: 18px; margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); cursor: pointer; border-left: 6px solid var(--primary); }
         .card-date { color: var(--primary); font-weight: bold; font-size: 14px; margin-bottom: 5px; }
         .card-title { font-size: 17px; font-weight: bold; color: #333; margin-bottom: 8px; }
-        .card-info { color: #887470; font-size: 13px; display: flex; gap: 10px; align-items: center; }
+        .card-info { color: #887470; font-size: 13px; display: flex; gap: 8px; align-items: center; }
         .state-tag { background: #fdf2f0; color: var(--primary); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
         #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; z-index: 1000; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         #posterImg { width: 100%; border-radius: 10px; margin-bottom: 15px; display: none; }
-        .detail-content { color: white; width: 100%; line-height: 1.6; }
+        .detail-content { color: white; line-height: 1.6; }
         .detail-title { font-size: 22px; font-weight: bold; margin-bottom: 15px; color: var(--primary); border-left: 5px solid var(--primary); padding-left: 12px; }
         .detail-item { font-size: 15px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
         .detail-item b { color: var(--bg-soft); margin-right: 10px; min-width: 80px; display: inline-block; }
@@ -68,20 +68,27 @@
 
     let allActivities = [];
 
-    // 专业的 CSV 行解析函数，处理引号内的逗号
-    function parseCsvLine(text) {
-        const result = [];
-        let cur = "";
+    // 强化版 CSV 行解析逻辑
+    function splitCSV(line) {
+        const matches = line.match(/(\s*"[^"]*"|\s*[^,]+|,)(?=\s*,|\s*$)/g);
+        if (!matches) return line.split(',');
+        return matches.map(m => m.replace(/^,/, '').replace(/^"|"$/g, '').trim());
+    }
+
+    // 备用解析：如果上面的正则失败，用这个最稳的
+    function robustSplit(text) {
+        let result = [];
+        let cell = '';
         let inQuote = false;
         for (let i = 0; i < text.length; i++) {
-            let char = text[i];
-            if (char === '"') inQuote = !inQuote;
-            else if (char === ',' && !inQuote) {
-                result.push(cur.trim());
-                cur = "";
-            } else cur += char;
+            let c = text[i];
+            if (c === '"') inQuote = !inQuote;
+            else if (c === ',' && !inQuote) {
+                result.push(cell.trim());
+                cell = '';
+            } else cell += c;
         }
-        result.push(cur.trim());
+        result.push(cell.trim());
         return result;
     }
 
@@ -89,10 +96,11 @@
         try {
             const resp = await fetch(csvUrl);
             const text = await resp.text();
-            const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+            // 解决 Excel 换行符问题
+            const lines = text.split(/\r?\n(?=(?:(?:[^"]*"){2})*[^"]*$)/).filter(l => l.trim() !== "");
             
             allActivities = lines.slice(1).map(line => {
-                const cols = parseCsvLine(line);
+                const cols = robustSplit(line);
                 return {
                     name: cols[2] || "未命名活动",
                     desc: cols[3] || "",
@@ -102,25 +110,30 @@
                     startTime: cols[7] || "",
                     endTime: cols[8] || "",
                     location: cols[9] || "",
-                    state: (cols[10] || "").replace(/\s+/g, ""), // 去掉空格
+                    state: cols[10] || "",
                     fee: cols[12] || "",
                     contact: cols[13] || "",
                     phone: cols[14] || "",
-                    status: (cols[15] || "").trim(), 
+                    status: cols[15] || "", 
                     poster: cols[16] || "",
                     action: cols[17] || ""
                 };
-            }).filter(a => a.status.includes("通过") || a.status.includes("批准"));
+            }).filter(a => {
+                const s = a.status.trim();
+                return s.includes("通过") || s.includes("批准");
+            });
 
+            console.log("成功加载活动总数:", allActivities.length);
             renderList(allActivities);
         } catch (e) {
-            document.getElementById('listBody').innerHTML = '<p style="text-align: center; color: white;">加载失败，请检查设置。</p>';
+            console.error(e);
+            document.getElementById('listBody').innerHTML = '<p style="text-align: center; color: white;">数据加载异常，请刷新重试。</p>';
         }
     }
 
     function renderList(data) {
         const listBody = document.getElementById('listBody');
-        listBody.innerHTML = (data.length === 0) ? '<p style="text-align: center; color: white;">目前没有符合条件的活动。</p>' : "";
+        listBody.innerHTML = (data.length === 0) ? '<p style="text-align: center; color: white;">目前没有已审核的法讯。</p>' : "";
         data.forEach(item => {
             const card = document.createElement('div');
             card.className = 'activity-card';
