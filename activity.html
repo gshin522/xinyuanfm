@@ -1,8 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>心愿 FM - 全马佛教活动指南</title>
+    <style>
+        :root { --primary: #E08870; --bg-soft: #E7A595; }
+        body { background-color: var(--bg-soft); font-family: "Microsoft YaHei", sans-serif; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+        header { width: 100%; background: white; padding: 20px 0; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; }
+        .logo-img { width: 60px; margin-bottom: 5px; }
+        h2 { color: var(--primary); margin: 0; font-size: 20px; }
+        .filter-container { width: 90%; max-width: 500px; margin: 20px 0; display: flex; gap: 10px; }
+        select { flex: 1; padding: 12px; border-radius: 12px; border: none; outline: none; font-size: 14px; background: white; color: #555; }
+        .activity-list { width: 90%; max-width: 500px; padding-bottom: 50px; }
+        .activity-card { background: white; border-radius: 18px; padding: 18px; margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); cursor: pointer; border-left: 6px solid var(--primary); }
+        .card-date { color: var(--primary); font-weight: bold; font-size: 14px; margin-bottom: 5px; }
+        .card-title { font-size: 17px; font-weight: bold; color: #333; margin-bottom: 8px; }
+        .card-info { color: #887470; font-size: 13px; display: flex; gap: 8px; align-items: center; }
+        .state-tag { background: #fdf2f0; color: var(--primary); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; z-index: 1000; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        #posterImg { width: 100%; border-radius: 10px; margin-bottom: 15px; display: none; cursor: zoom-in; }
+        .detail-content { color: white; line-height: 1.6; }
+        .detail-title { font-size: 22px; font-weight: bold; margin-bottom: 15px; color: var(--primary); border-left: 5px solid var(--primary); padding-left: 12px; }
+        .detail-item { font-size: 15px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
+        .detail-item b { color: var(--bg-soft); margin-right: 10px; min-width: 80px; display: inline-block; }
+        .btn-close { margin: 30px 0; color: white; border: 1.5px solid rgba(255,255,255,0.5); padding: 15px; text-align: center; border-radius: 30px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <img src="https://i.ibb.co/ycBDJ23z/logo.png" class="logo-img">
+        <h2>全马佛教活动指南</h2>
+    </header>
+
+    <div class="filter-container">
+        <select id="stateFilter" onchange="filterData()">
+            <option value="">全部州属</option>
+            <option value="雪兰莪">雪兰莪</option><option value="吉隆坡">吉隆坡</option><option value="槟城">槟城</option>
+            <option value="柔佛">柔佛</option><option value="霹雳">霹雳</option><option value="马六甲">马六甲</option>
+            <option value="森美兰">森美兰</option><option value="吉打">吉打</option><option value="彭亨">彭亨</option>
+            <option value="登嘉楼">登嘉楼</option><option value="吉兰丹">吉兰丹</option><option value="玻璃市">玻璃市</option>
+            <option value="砂拉越">砂拉越</option><option value="沙巴">沙巴</option>
+        </select>
+        <select id="monthFilter" onchange="filterData()">
+            <option value="">全部月份</option>
+            <option value="01">1月</option><option value="02">2月</option><option value="03">3月</option>
+            <option value="04">4月</option><option value="05">5月</option><option value="06">6月</option>
+            <option value="07">7月</option><option value="08">8月</option><option value="09">9月</option>
+            <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+        </select>
+    </div>
+
+    <div class="activity-list" id="listBody">
+        <p style="text-align: center; color: white;">法讯加载中...</p>
+    </div>
+
+    <div id="modal">
+        <img id="posterImg" src="" onclick="window.open(this.src, '_blank')">
+        <div class="detail-content" id="detailBody"></div>
+        <div class="btn-close" onclick="closeModal()">返回列表</div>
+    </div>
+
+<script>
+    const sheetId = '1Hz97SCxNiKpg6M4SAsT2zx4XyGJxzAIVHFQJfKiWPuU';
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&t=${new Date().getTime()}`;
+
+    let allActivities = [];
+
+    function robustSplit(text) {
+        let result = [];
+        let cell = '';
+        let inQuote = false;
+        for (let i = 0; i < text.length; i++) {
+            let c = text[i];
+            if (c === '"') inQuote = !inQuote;
+            else if (c === ',' && !inQuote) {
+                result.push(cell.trim());
+                cell = '';
+            } else cell += c;
+        }
+        result.push(cell.trim());
+        return result;
+    }
+
+    async function init() {
+        try {
+            const resp = await fetch(csvUrl);
+            const text = await resp.text();
+            const lines = text.split(/\r?\n(?=(?:(?:[^"]*"){2})*[^"]*$)/).filter(l => l.trim() !== "");
+            
+            allActivities = lines.slice(1).map(line => {
+                const cols = robustSplit(line);
+                return {
+                    name: cols[2] || "未命名活动",
+                    desc: cols[3] || "",
+                    org: cols[4] || "",
+                    startDate: cols[5] || "",
+                    endDate: cols[6] || "",
+                    startTime: cols[7] || "",
+                    endTime: cols[8] || "",
+                    location: cols[9] || "",
+                    state: cols[10] || "",
+                    fee: cols[12] || "",
+                    contact: cols[13] || "",
+                    phone: cols[14] || "",
+                    status: cols[15] || "", 
+                    poster: cols[16] || "",
+                    action: cols[17] || ""
+                };
+            }).filter(a => {
+                const s = a.status.trim();
+                return s.includes("通过") || s.includes("批准");
+            });
+
+            renderList(allActivities);
+        } catch (e) {
+            document.getElementById('listBody').innerHTML = '<p style="text-align: center; color: white;">加载异常，请重试。</p>';
+        }
+    }
+
+    function renderList(data) {
+        const listBody = document.getElementById('listBody');
+        listBody.innerHTML = (data.length === 0) ? '<p style="text-align: center; color: white;">目前没有已审核的法讯。</p>' : "";
+        data.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'activity-card';
+            card.onclick = () => showDetail(item);
+            card.innerHTML = `
+                <div class="card-date">${item.startDate}</div>
+                <div class="card-title">${item.name}</div>
+                <div class="card-info"><span class="state-tag">${item.state}</span><span>${item.org}</span></div>
+            `;
+            listBody.appendChild(card);
+        });
+    }
+
+    function filterData() {
+        const state = document.getElementById('stateFilter').value;
+        const month = document.getElementById('monthFilter').value;
+        const filtered = allActivities.filter(a => {
+            const matchState = state === "" || a.state.includes(state);
+            let m = "";
+            if (a.startDate.includes('/')) m = a.startDate.split('/')[1];
+            else if (a.startDate.includes('-')) m = a.startDate.split('-')[1];
+            const formattedM = m.padStart(2, '0');
+            return matchState && (month === "" || formattedM === month);
+        });
+        renderList(filtered);
+    }
+
     function showDetail(item) {
         const poster = document.getElementById('posterImg');
         
-        // 只有当链接包含 http 且看起来像图片或云端链接时才尝试加载
-        if (item.poster && item.poster.startsWith('http')) {
+        // 只有当链接有效且非 FB 链接时才尝试转换
+        if (item.poster && item.poster.includes('http')) {
             let id = "";
             if (item.poster.includes('/d/')) id = item.poster.split('/d/')[1].split('/')[0];
             else if (item.poster.includes('id=')) id = item.poster.split('id=')[1].split('&')[0];
@@ -10,11 +162,28 @@
             poster.src = id ? `https://drive.google.com/thumbnail?id=${id}&sz=w1000` : item.poster;
             poster.style.display = 'block';
             
-            // 如果图片加载失败（比如是 FB 链接），直接隐藏图片框，不显示破图
-            poster.onerror = function() {
-                this.style.display = 'none';
-            };
+            // 自动检测并隐藏加载失败的图片（比如填了 FB 链接）
+            poster.onerror = function() { this.style.display = 'none'; };
         } else {
             poster.style.display = 'none';
         }
-        // ... 后面的代码保持不变
+
+        document.getElementById('detailBody').innerHTML = `
+            <div class="detail-title">${item.name}</div>
+            <div class="detail-item"><b>主办单位</b>${item.org}</div>
+            <div class="detail-item"><b>活动日期</b>${item.startDate} ${item.endDate ? '至 '+item.endDate : ''}</div>
+            <div class="detail-item"><b>活动时间</b>${item.startTime} - ${item.endTime}</div>
+            <div class="detail-item"><b>活动地点</b>${item.location} (${item.state})</div>
+            <div class="detail-item"><b>费用详情</b>${item.fee}</div>
+            <div class="detail-item"><b>联系方式</b>${item.contact} (${item.phone})</div>
+            ${item.action ? `<div class="detail-item"><b>更多详情</b><a href="${item.action}" target="_blank" style="color:#E08870; font-weight:bold; text-decoration:underline;">点击访问链接</a></div>` : ''}
+            <div class="detail-item" style="border:none;margin-top:15px;"><b style="display:block;margin-bottom:5px;">活动简介</b><div style="color:#ccc;white-space:pre-wrap;">${item.desc}</div></div>
+        `;
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+    init();
+</script>
+</body>
+</html>
