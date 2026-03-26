@@ -188,7 +188,7 @@
             const card = document.createElement('div');
             card.className = `activity-card ${item.isLive ? 'is-live' : ''} ${item.isExpired ? 'is-expired' : ''}`;
             card.onclick = () => showDetail(item);
-            let tagHTML = item.isLive ? '<div class="live-tag"><span class="live-dot"></span>今天的活动</div>' : (item.isExpired ? '<div class="expired-tag">🔘 已圆满</div>' : "");
+            let tagHTML = item.isLive ? '<div class="live-tag"><span class="live-dot"></span>今日活动</div>' : (item.isExpired ? '<div class="expired-tag">🔘 已圆满</div>' : "");
             card.innerHTML = `${tagHTML}<div class="card-date">${item.startDate}</div><div class="card-title">${item.name}</div><div class="card-info">${getTagHTML(item.state)}<span>${item.org}</span></div>`;
             listBody.appendChild(card);
         });
